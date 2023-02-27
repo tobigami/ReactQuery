@@ -28,6 +28,14 @@ export default function Students() {
   return (
     <div>
       <h1 className='text-lg'>Students</h1>
+      <Link
+        to={`/students/add`}
+        type='button'
+        className=' mt-6 mr-2 mb-2 rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800'
+      >
+        Add Student
+      </Link>
+
       {isLoading && <LoadingSkeleton />}
       <div className='relative mt-6 overflow-x-auto shadow-md sm:rounded-lg'>
         {!isLoading && (
