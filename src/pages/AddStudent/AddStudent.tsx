@@ -1,8 +1,9 @@
 import { useMatch } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { addStudent } from 'apis/students.apis'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { StudentType } from 'Types/student.type'
+import { isAxiosError } from 'utils/utils'
 
 const initialState: Omit<StudentType, 'id'> = {
   avatar: '',
@@ -14,22 +15,48 @@ const initialState: Omit<StudentType, 'id'> = {
   last_name: ''
 }
 
+type FormError =
+  | {
+      [key in keyof Omit<StudentType, 'id'>]: string
+    }
+  | null
+
 export default function AddStudent() {
   const addMatch = useMatch('/students/add')
   const isAddMode = Boolean(addMatch)
   const [studentData, setStudentData] = useState<Omit<StudentType, 'id'>>(initialState)
-  const { mutate } = useMutation({
+  const { mutate, mutateAsync, error, data, reset } = useMutation({
     mutationFn: (body: Omit<StudentType, 'id'>) => addStudent(body)
   })
 
+  const errorForm = useMemo(() => {
+    if (isAxiosError<{ error: FormError }>(error) && error.response?.status === 422) {
+      return error.response?.data.error
+    }
+    return null
+  }, [error])
   // use currying
   const handleOnChange = (name: keyof Omit<StudentType, 'id'>) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (data || error) {
+      reset()
+    }
     return setStudentData((pre) => ({ ...pre, [name]: event.target.value }))
   }
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    mutate(studentData)
-    console.log(studentData)
+    // option 1
+    // mutate(studentData, {
+    //   onSuccess: () => {
+    //     setStudentData(initialState)
+    //   }
+    // })
+    // option 2
+    try {
+      await mutateAsync(studentData)
+      setStudentData(initialState)
+    } catch (error) {
+      console.log(error)
+    }
   }
   return (
     <div>
@@ -37,7 +64,7 @@ export default function AddStudent() {
       <form className='mt-6' onSubmit={handleSubmit}>
         <div className='group relative z-0 mb-6 w-full'>
           <input
-            type='email'
+            type='text'
             name='floating_email'
             id='floating_email'
             className='peer block w-full appearance-none border-0 border-b-2 border-gray-300 bg-transparent py-2.5 px-0 text-sm text-gray-900 focus:border-blue-600 focus:outline-none focus:ring-0'
@@ -52,6 +79,7 @@ export default function AddStudent() {
           >
             Email address
           </label>
+          {errorForm && <span className='text-red-500'>{errorForm.email}</span>}
         </div>
 
         <div className='group relative z-0 mb-6 w-full'>
